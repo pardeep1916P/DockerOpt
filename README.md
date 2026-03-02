@@ -102,16 +102,25 @@ src/
 
 ---
 
-## Screenshots
 
-> _Coming soon_
+## Landing Page
+
+![Landing Page Screenshot](./assets/landing-page-screenshot.png)
+
+The DockerOpt landing page provides a modern, minimal, and themeable interface for analyzing, optimizing, and securing Docker images. Key features include:
+
+- **Branding:** Prominent DockerOpt logo and name at the top.
+- **Theme Toggle:** Easily switch between light and dark modes.
+- **Code Editor:** Paste, upload, or drag-and-drop your Dockerfile for instant analysis. The editor supports tabs for different input methods (Paste Code, Upload File, Image Name).
+- **Sample Loader:** Quickly load a sample Dockerfile for demonstration or testing.
+- **Performance Indicator:** Displays analysis response time.
+- **Analyze & Optimize Button:** Initiates the optimization process (disabled until input is provided).
+- **Footer:** Highlights that the tool is built for developers, is minimal, and themeable.
+
+The UI is designed for a seamless developer experience, focusing on usability and clarity.
 
 ---
 
 ## License
 
 MIT
-
----
-
-Made with ☕ and 🐳
