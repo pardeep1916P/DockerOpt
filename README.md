@@ -105,7 +105,7 @@ src/
 
 ## Landing Page
 
-![Landing Page Screenshot](./assets/landing-page-screenshot.png)
+![Landing Page Screenshot](./public/assets/landing-page.png)
 
 The DockerOpt landing page provides a modern, minimal, and themeable interface for analyzing, optimizing, and securing Docker images. Key features include:
 
