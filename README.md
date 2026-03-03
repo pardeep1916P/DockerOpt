@@ -2,6 +2,8 @@
 
 AI-powered Dockerfile analyzer and optimizer. Paste, upload, or photograph your Dockerfile and get instant analysis with actionable optimization suggestions.
 
+![Landing Page Screenshot](./public/assets/landing-page.png)
+
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)
@@ -103,9 +105,9 @@ src/
 ---
 
 
-## Landing Page
+<!-- ## Landing Page
 
-![Landing Page Screenshot](./public/assets/landing-page.png)
+
 
 The DockerOpt landing page provides a modern, minimal, and themeable interface for analyzing, optimizing, and securing Docker images. Key features include:
 
@@ -119,7 +121,7 @@ The DockerOpt landing page provides a modern, minimal, and themeable interface f
 
 The UI is designed for a seamless developer experience, focusing on usability and clarity.
 
----
+--- -->
 
 ## License
 
