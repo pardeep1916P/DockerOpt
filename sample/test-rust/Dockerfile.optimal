@@ -1,0 +1,11 @@
+# Optimized Rust Dockerfile
+FROM rust:1.77.0-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN apk add --no-cache musl-dev
+RUN cargo build --release
+
+FROM scratch
+COPY --from=builder /app/target/release/test-rust /server
+EXPOSE 8080
+CMD ["/server"]
