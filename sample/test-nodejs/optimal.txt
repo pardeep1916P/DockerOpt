@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+
+# 1) Dependencies stage (installs prod deps with good caching)
+FROM node:20-bookworm-slim AS deps
+WORKDIR /app
+
+# Copy only dependency manifests first for better layer caching
+COPY package*.json ./
+
+# Install production dependencies only (reproducible)
+RUN npm ci --omit=dev && npm cache clean --force
+
+
+# 2) Runtime stage (minimal)
+FROM node:20-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Copy only the needed artifacts
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Run as non-root (node user exists in official node images)
+USER node
+
+EXPOSE 3000
+CMD ["npm", "start"]
