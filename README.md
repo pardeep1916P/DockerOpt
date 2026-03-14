@@ -1,13 +1,30 @@
+
 # DockerOpt
-
-AI-powered Dockerfile analyzer and optimizer. Paste, upload, or photograph your Dockerfile and get instant analysis with actionable optimization suggestions.
-
-![Landing Page Screenshot](./public/assets/landing-page.png)
 
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss&logoColor=white)
+![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
+![Open Issues](https://img.shields.io/github/issues/pardeep1916P/DockerOpt)
+![Pull Requests](https://img.shields.io/github/issues-pr/pardeep1916P/DockerOpt)
+
+---
+
+## 🚀 Introduction
+
+**DockerOpt** is an AI-powered Dockerfile analyzer and optimizer. Instantly analyze your Dockerfiles for security, performance, and best practices. Paste, upload, or photograph your Dockerfile and get actionable suggestions and a refactored output.
+
+<p align="center">
+    <img src="./public/assets/landing-page.png" alt="Landing Page Screenshot" width="600"/>
+</p>
+
+<!-- Optionally, add a demo GIF here -->
+<!-- <p align="center">
+    <img src="demo.gif" alt="Demo" width="600"/>
+</p> -->
+
+---
 
 ---
 
@@ -44,9 +61,14 @@ AI-powered Dockerfile analyzer and optimizer. Paste, upload, or photograph your 
 ## Getting Started
 
 ```bash
+
+## Getting Started
+
+```bash
 # Clone
-git clone https://github.com/pardeep1916P/DockerImageOptimizer.git
-cd AI-Docker-file-optimizer
+git clone https://github.com/pardeep1916P/DockerOpt.git
+cd DockerOpt
+
 
 # Install dependencies
 npm install
@@ -67,7 +89,20 @@ Create a `.env` file in the root:
 VITE_OPENAI_API_KEY=your_api_key
 VITE_OPENAI_BASE_URL=https://api.ai.kodekloud.com/v1
 VITE_OPENAI_MODEL=gpt-5.2
+
 ```
+
+---
+
+
+---
+
+## 🛠️ How it Works
+
+1. **Input**: Paste, upload, or photograph your Dockerfile.
+2. **AI Analysis**: The app sends your Dockerfile to an OpenAI-powered API for multi-dimensional analysis (security, performance, size, best practices).
+3. **Dashboard**: Results are displayed in a tabbed dashboard with scores, issues, and suggestions.
+4. **Optimized Output**: Get a refactored Dockerfile and download or copy it instantly.
 
 ---
 
@@ -122,6 +157,34 @@ The DockerOpt landing page provides a modern, minimal, and themeable interface f
 The UI is designed for a seamless developer experience, focusing on usability and clarity.
 
 --- -->
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/YourFeature`)
+3. Commit your changes (`git commit -m 'Add some feature'`)
+4. Push to the branch (`git push origin feature/YourFeature`)
+5. Open a Pull Request
+
+---
+
+## 📬 Contact & Support
+
+- **Author:** [Pardeep Kumar](https://github.com/pardeep1916P)
+- **Issues:** [GitHub Issues](https://github.com/pardeep1916P/DockerOpt/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/pardeep1916P/DockerOpt/discussions)
+
+---
+
+## ⚠️ Privacy & API Note
+
+This app uses the [KodeKloud AI API](https://api.ai.kodekloud.com/v1) to analyze Dockerfiles. Your Dockerfile content is sent to a third-party service for analysis. Do not upload sensitive or proprietary information.
+
+---
 
 ## License
 
