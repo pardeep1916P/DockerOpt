@@ -176,7 +176,7 @@ Contributions, issues, and feature requests are welcome!
 
 ## 📬 Contact & Support
 
-- **Author:** [Pardeep Kumar](https://github.com/pardeep1916P)
+- **Author:** [Charan Chaitanya Devanaboyina](https://github.com/pardeep1916P)
 - **Issues:** [GitHub Issues](https://github.com/pardeep1916P/DockerOpt/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/pardeep1916P/DockerOpt/discussions)
 
