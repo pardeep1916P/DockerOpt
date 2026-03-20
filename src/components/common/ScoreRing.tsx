@@ -44,7 +44,7 @@ export const ScoreRing: React.FC<ScoreRingProps> = ({ score, size = 120 }) => {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold font-mono text-gray-900 dark:text-white">{score}</span>
+        <span className="text-2xl font-bold font-mono text-gray-900 dark:text-white">{Math.round(score)}</span>
         <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Score</span>
       </div>
     </div>
