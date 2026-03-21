@@ -28,8 +28,6 @@ AI-powered Dockerfile analyzer and optimizer. Paste, upload, or photograph your 
 
 ---
 
----
-
 ## Features
 
 - **Three Input Modes** — Paste, file upload, or image (OCR) input
