@@ -1,8 +1,17 @@
 import OpenAI from 'openai';
-import { AnalysisResult, AnalysisCache } from '../types';
+import { AnalysisResult, type AnalysisCache } from '../types';
+import type { ExpertName, MultiModelConfig } from './multiModel/types';
+import { analyzeSingleModel, analyzeWithMultiModelExpertSystem } from './multiModel/orchestrate';
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const cache: AnalysisCache = {};
+let cache: AnalysisCache = {};
+
+// Clear cache on HMR to pick up merge/normalization fixes immediately.
+if (import.meta.hot) {
+  import.meta.hot.on('vite:beforeUpdate', () => {
+    cache = {};
+  });
+}
 
 let openai: OpenAI | null = null;
 
@@ -11,151 +20,139 @@ function getClient(): OpenAI {
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error(
-        'Missing VITE_OPENAI_API_KEY. Create a .env file in the project root with:\nVITE_OPENAI_API_KEY=your-api-key-here'
+        'Missing VITE_OPENAI_API_KEY. Create a .env file in the project root with:\nVITE_OPENAI_API_KEY=your-api-key-here',
       );
     }
+
+    const isBrowser = typeof window !== 'undefined';
     openai = new OpenAI({
       apiKey,
-      // In dev, route through Vite proxy so requests/responses are logged in the terminal
-      baseURL: import.meta.env.DEV
-        ? `${window.location.origin}/api`
-        : (import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1'),
+      // In dev, route through Vite proxy so requests/responses are logged in the terminal.
+      baseURL:
+        import.meta.env.DEV && isBrowser
+          ? `${window.location.origin}/api`
+          : (import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1'),
       dangerouslyAllowBrowser: true,
     });
   }
   return openai;
 }
 
-const SYSTEM_PROMPT = `You are a Docker image optimization expert. Analyze the provided Dockerfile and return a comprehensive JSON analysis.
-
-Return ONLY valid JSON with this exact structure (no markdown, no code fences):
-{
-  "originalSize": <estimated original image size in bytes>,
-  "optimizedSize": <estimated optimized image size in bytes>,
-  "layerCountBefore": <number of layers in original>,
-  "layerCountAfter": <number of layers in optimized>,
-  "optimizationScore": <0-100 score>,
-  "issues": [
-    {
-      "title": "<issue title>",
-      "severity": "<critical|high|medium|low>",
-      "explanation": "<what the issue is>",
-      "impact": "<why it matters>",
-      "fix": "<how to fix it>"
-    }
-  ],
-  "optimizedDockerfile": "<full optimized Dockerfile text>",
-  "changes": [
-    {
-      "description": "<what was changed>",
-      "benefit": "<estimated benefit>"
-    }
-  ],
-  "layersBefore": [
-    { "instruction": "<docker instruction>", "size": <bytes> }
-  ],
-  "layersAfter": [
-    { "instruction": "<docker instruction>", "size": <bytes> }
-  ],
-  "vulnerabilities": [
-    {
-      "cveId": "CVE-2024-3094",
-      "severity": "critical",
-      "packageName": "xz-utils",
-      "installedVersion": "5.4.1",
-      "fixedVersion": "5.6.2",
-      "fixable": true
-    }
-  ],
-  "logs": [
-    { "timestamp": "<ISO time>", "level": "<info|success|warning|error>", "message": "<log message>" }
-  ]
+function getFallbackModel(): string {
+  return import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2';
 }
 
-Be thorough. Estimate realistic sizes. Identify real optimization opportunities. Generate at least 3-5 issues and 3-5 vulnerabilities for typical Dockerfiles.
+function parseModelConfigFromEnv(): MultiModelConfig {
+  const fallback = getFallbackModel();
+  // `import.meta.env` is untyped in this project; force to `string` so downstream `.split()` callbacks
+  // keep proper types under `strict` + `noImplicitAny`.
+  const envStr = String(import.meta.env.VITE_OPENAI_MODELS ?? '').trim();
 
-CRITICAL for vulnerabilities:
-- "installedVersion" MUST be a real version number like "5.4.1", "7.88.1", "18.19.0" — NEVER use "N/A", null, or empty string.
-- "fixedVersion" MUST be a real version number like "5.6.2", "8.4.0" when fixable is true. Use null ONLY when fixable is false.
-- Estimate realistic versions based on the base image and the packages being installed.
-- The example in the schema above shows the exact format to follow.`;
+  // Format A: key=value;key=value
+  // Example: "router=anthropic/claude-sonnet-4.5;security=deepseek/v3.2;size=...;performance=...;best_practices=..."
+  if (envStr && envStr.includes('=') && envStr.includes(';')) {
+    const map: Record<string, string> = {};
+    envStr
+      .split(';')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .forEach((pair) => {
+        const idx = pair.indexOf('=');
+        if (idx <= 0) return;
+        const k = pair.slice(0, idx).trim();
+        const v = pair.slice(idx + 1).trim();
+        if (k && v) map[k] = v;
+      });
 
-export const analyzeDockerfile = async (dockerfile: string): Promise<AnalysisResult> => {
-  const cacheKey = dockerfile.trim();
+    const routerModel = map.router ?? map.r ?? fallback;
+
+    const expertModels: Record<ExpertName, string> = {
+      security: map.security ?? routerModel,
+      size: map.size ?? routerModel,
+      performance: map.performance ?? routerModel,
+      best_practices: map.best_practices ?? map.bestPractices ?? routerModel,
+    };
+
+    return { routerModel, expertModels };
+  }
+
+  // Format B: comma-separated list; first=router, then security/size/performance/best_practices
+  if (envStr) {
+    const list = envStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const routerModel = list[0] ?? fallback;
+    const security = list[1] ?? routerModel;
+    const size = list[2] ?? security;
+    const performance = list[3] ?? size;
+    const best_practices = list[4] ?? performance;
+
+    return {
+      routerModel,
+      expertModels: {
+        security,
+        size,
+        performance,
+        best_practices,
+      },
+    };
+  }
+
+  // Default: single model for everything.
+  return {
+    routerModel: fallback,
+    expertModels: {
+      security: fallback,
+      size: fallback,
+      performance: fallback,
+      best_practices: fallback,
+    },
+  };
+}
+
+export async function analyzeDockerfileWithModel(dockerfile: string, model: string): Promise<AnalysisResult> {
+  const cacheKey = `${dockerfile.trim()}::mode=single::model=${model}`;
   const cachedResult = cache[cacheKey];
 
   if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_DURATION) {
     return cachedResult.analysis;
   }
 
+  const analysis = await analyzeSingleModel({
+    client: getClient(),
+    dockerfile,
+    model,
+  });
+
+  cache[cacheKey] = { timestamp: Date.now(), analysis };
+  return analysis;
+}
+
+export const analyzeDockerfile = async (dockerfile: string): Promise<AnalysisResult> => {
+  const dockerKey = dockerfile.trim();
+  const models = parseModelConfigFromEnv();
+
+  const cacheKey = `${dockerKey}::mode=multi::router=${models.routerModel}::sec=${models.expertModels.security}::size=${
+    models.expertModels.size
+  }::perf=${models.expertModels.performance}::bp=${models.expertModels.best_practices}`;
+
+  const cachedResult = cache[cacheKey];
+  if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_DURATION) {
+    return cachedResult.analysis;
+  }
+
   try {
-    const model = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2';
-    const messages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT },
-      { role: 'user' as const, content: dockerfile },
-    ];
-
-    const completion = await getClient().chat.completions.create({
-      messages,
-      model,
+    const analysis = await analyzeWithMultiModelExpertSystem({
+      client: getClient(),
+      dockerfile,
+      models,
     });
-
-    const raw = completion.choices[0].message.content || '{}';
-    // Strip markdown code fences if present
-    const cleaned = raw.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '').trim();
-    const result = JSON.parse(cleaned);
-
-    const analysis: AnalysisResult = {
-      originalSize: result.originalSize ?? 0,
-      optimizedSize: result.optimizedSize ?? 0,
-      layerCountBefore: result.layerCountBefore ?? 0,
-      layerCountAfter: result.layerCountAfter ?? 0,
-      optimizationScore: Math.min(100, Math.max(0, result.optimizationScore ?? 0)),
-      issues: (result.issues ?? []).map((i: Record<string, string>) => ({
-        title: i.title ?? '',
-        severity: i.severity ?? 'low',
-        explanation: i.explanation ?? '',
-        impact: i.impact ?? '',
-        fix: i.fix ?? '',
-      })),
-      originalDockerfile: dockerfile,
-      optimizedDockerfile: result.optimizedDockerfile ?? dockerfile,
-      changes: (result.changes ?? []).map((c: Record<string, string>) => ({
-        description: c.description ?? '',
-        benefit: c.benefit ?? '',
-      })),
-      layersBefore: (result.layersBefore ?? []).map((l: Record<string, unknown>) => ({
-        instruction: String(l.instruction ?? ''),
-        size: Number(l.size ?? 0),
-      })),
-      layersAfter: (result.layersAfter ?? []).map((l: Record<string, unknown>) => ({
-        instruction: String(l.instruction ?? ''),
-        size: Number(l.size ?? 0),
-      })),
-      vulnerabilitiesBefore: (result.vulnerabilities ?? []).map((v: Record<string, unknown>) => {
-        const installed = v.installedVersion ? String(v.installedVersion) : '';
-        const fixed = v.fixedVersion ? String(v.fixedVersion) : '';
-        return {
-          cveId: String(v.cveId ?? 'N/A'),
-          severity: String(v.severity ?? 'low') as 'critical' | 'high' | 'medium' | 'low',
-          packageName: String(v.packageName ?? ''),
-          installedVersion: (installed === 'null' || installed === 'N/A' || installed === 'n/a') ? '' : installed,
-          fixedVersion: (fixed === 'null' || fixed === 'N/A' || fixed === 'n/a') ? '' : fixed,
-          fixable: Boolean(v.fixable),
-        };
-      }),
-      vulnerabilitiesAfter: [],
-      logs: (result.logs ?? []).map((l: Record<string, unknown>) => ({
-        timestamp: String(l.timestamp ?? new Date().toISOString()),
-        level: String(l.level ?? 'info') as 'info' | 'success' | 'warning' | 'error',
-        message: String(l.message ?? ''),
-      })),
-    };
 
     cache[cacheKey] = { timestamp: Date.now(), analysis };
     return analysis;
   } catch (error) {
-    console.error('API Error:', error instanceof Error ? error.message : error);
+    const msg = error instanceof Error ? error.message : String(error);
     return {
       originalSize: 0,
       optimizedSize: 0,
@@ -174,10 +171,10 @@ export const analyzeDockerfile = async (dockerfile: string): Promise<AnalysisRes
         {
           timestamp: new Date().toISOString(),
           level: 'error',
-          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          message: msg,
         },
       ],
-      error: error instanceof Error ? error.message : 'Failed to analyze Dockerfile. Please try again.',
+      error: msg || 'Failed to analyze Dockerfile. Please try again.',
     };
   }
 };
