@@ -1,6 +1,5 @@
 import React from 'react';
 import { AnalysisResult } from '../../../types';
-import { MetricCard } from '../../common/MetricCard';
 import { useTheme } from '../../../context/ThemeContext';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -8,10 +7,10 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  Tooltip,
+  Tooltip as ChartTooltip,
 } from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip);
 
 function formatBytes(bytes: number): string {
   if (!bytes || !Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -32,31 +31,29 @@ interface SizeTabProps {
 export const SizeTab: React.FC<SizeTabProps> = ({ data }) => {
   const { isDark } = useTheme();
 
-  const reduction = data.originalSize > 0
-    ? ((data.originalSize - data.optimizedSize) / data.originalSize * 100).toFixed(1)
-    : '0';
-
   // Layer comparison chart data
   const maxLayers = Math.max(data.layersBefore.length, data.layersAfter.length);
   const labels = Array.from({ length: maxLayers }, (_, i) => `Layer ${i + 1}`);
 
-  const gridColor = isDark ? 'rgba(55, 65, 81, 0.3)' : 'rgba(209, 213, 219, 0.5)';
-  const tickColor = isDark ? '#9ca3af' : '#6b7280';
+  const gridColor = isDark ? 'rgba(38, 38, 38, 0.4)' : 'rgba(209, 213, 219, 0.5)';
+  const tickColor = isDark ? '#adaaaa' : '#6b7280';
 
   const chartData = {
     labels,
     datasets: [
       {
-        label: 'Before',
+        label: 'Original',
         data: data.layersBefore.map((l) => toMB(l.size)),
-        backgroundColor: 'rgba(239, 68, 68, 0.6)',
-        borderRadius: 3,
+        backgroundColor: 'rgba(215, 56, 59, 0.6)', // error-dim
+        borderRadius: 4,
+        barPercentage: 0.6,
       },
       {
-        label: 'After',
+        label: 'Optimized',
         data: data.layersAfter.map((l) => toMB(l.size)),
-        backgroundColor: 'rgba(34, 197, 94, 0.6)',
-        borderRadius: 3,
+        backgroundColor: 'rgba(105, 246, 184, 0.6)', // primary
+        borderRadius: 4,
+        barPercentage: 0.6,
       },
     ],
   };
@@ -66,69 +63,86 @@ export const SizeTab: React.FC<SizeTabProps> = ({ data }) => {
     maintainAspectRatio: false,
     plugins: {
       tooltip: {
+        backgroundColor: 'rgba(26, 26, 26, 0.9)',
+        padding: 12,
+        titleColor: '#ffffff',
+        bodyColor: '#adaaaa',
+        titleFont: { family: 'Inter', size: 14, weight: 'bold' as const },
+        bodyFont: { family: 'Inter', size: 13 },
         callbacks: {
           label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) =>
             `${ctx.dataset.label}: ${ctx.parsed.y ?? 0} MB`,
         },
       },
+      legend: { display: false }
     },
     scales: {
       x: {
-        grid: { color: gridColor },
-        ticks: { color: tickColor, font: { size: 11 } },
+        grid: { color: gridColor, display: false },
+        ticks: { color: tickColor, font: { family: 'Inter', size: 11 } },
       },
       y: {
-        grid: { color: gridColor },
-        ticks: { color: tickColor, font: { size: 11 }, callback: (v: string | number) => `${v} MB` },
+        grid: { color: gridColor, drawBorder: false },
+        border: { display: false },
+        ticks: { color: tickColor, font: { family: 'Inter', size: 11 }, callback: (v: string | number) => `${v} MB` },
       },
     },
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Size Comparison</h2>
-
-      {/* Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Size Before" value={formatBytes(data.originalSize)} />
-        <MetricCard label="Size After" value={formatBytes(data.optimizedSize)} accent="text-emerald-400" />
-        <MetricCard label="Reduction" value={`${reduction}%`} accent="text-emerald-400" />
-        <MetricCard
-          label="Layers"
-          value={`${data.layerCountBefore} → ${data.layerCountAfter}`}
-        />
+      <div className="flex items-center justify-between px-2">
+        <h2 className="text-xl font-bold tracking-tight text-on-surface">Image Composition</h2>
       </div>
 
-      {/* Comparison Bar */}
-      <div className="bg-gray-100/80 dark:bg-gray-800/40 border border-gray-300/40 dark:border-gray-700/40 rounded-lg p-4 space-y-3 transition-colors">
-        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Size Comparison</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500 w-14">Before</span>
-            <div className="flex-1 h-6 bg-gray-200/50 dark:bg-gray-700/40 rounded overflow-hidden">
-              <div className="h-full bg-red-500/60 rounded" style={{ width: '100%' }} />
+      {/* Comparison Detail Bar container */}
+      <div className="bg-surface-container-low rounded-[2rem] overflow-hidden">
+        <div className="px-6 lg:px-8 py-6 border-b border-white/5 flex items-center justify-between">
+          <h3 className="font-bold text-lg tracking-tight">Size Breakdown</h3>
+        </div>
+        
+        <div className="px-6 lg:px-8 py-8 space-y-8">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-error-dim"></div> Original Total</span>
+                <span className="text-on-surface font-mono text-sm">{formatBytes(data.originalSize)}</span>
+              </div>
+              <div className="h-2.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+                <div className="h-full bg-error-dim/80 rounded-full" style={{ width: '100%' }}></div>
+              </div>
             </div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono w-20 text-right">{formatBytes(data.originalSize)}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-500 w-14">After</span>
-            <div className="flex-1 h-6 bg-gray-200/50 dark:bg-gray-700/40 rounded overflow-hidden">
-              <div
-                className="h-full bg-emerald-500/60 rounded"
-                style={{ width: data.originalSize > 0 ? `${(data.optimizedSize / data.originalSize) * 100}%` : '0%' }}
-              />
+
+            <div className="space-y-2 pt-2">
+              <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary"></div> Optimized Total</span>
+                <span className="text-primary font-mono text-sm">{formatBytes(data.optimizedSize)}</span>
+              </div>
+              <div className="h-2.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(105,246,184,0.4)]"
+                  style={{ width: data.originalSize > 0 ? `${(data.optimizedSize / data.originalSize) * 100}%` : '0%' }}
+                />
+              </div>
             </div>
-            <span className="text-xs text-emerald-400 font-mono w-20 text-right">{formatBytes(data.optimizedSize)}</span>
           </div>
         </div>
       </div>
 
       {/* Layer Chart */}
       {data.layersBefore.length > 0 && (
-        <div className="bg-gray-100/80 dark:bg-gray-800/40 border border-gray-300/40 dark:border-gray-700/40 rounded-lg p-4 transition-colors">
-          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Layer Breakdown</div>
-          <div className="h-64">
-            <Bar data={chartData} options={chartOptions} />
+        <div className="bg-surface-container-low rounded-[2rem] overflow-hidden">
+           <div className="px-6 lg:px-8 py-6 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="font-bold text-lg tracking-tight">Layer Comparison</h3>
+              <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-error-dim/60"></div> Before</span>
+                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-primary/60"></div> After</span>
+              </div>
+           </div>
+          <div className="px-6 lg:px-8 py-8">
+            <div className="h-[300px]">
+              <Bar data={chartData} options={chartOptions as any} />
+            </div>
           </div>
         </div>
       )}

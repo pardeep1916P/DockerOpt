@@ -12,11 +12,11 @@
   }
 
   body {
-    @apply bg-bg-main text-text-primary;
+    @apply bg-background text-on-surface;
     min-height: 100vh;
   }
 
-  /* Custom scrollbar — Dracula palette */
+  /* Custom scrollbar — DockerOpt Kinetic palette */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -25,26 +25,29 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-border-subtle rounded-full;
+    @apply bg-surface-variant rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-btn-bg;
+    @apply bg-outline;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-bg-card border border-border-subtle rounded-xl;
+    @apply bg-surface-container-low border border-white/5 rounded-2xl shadow-xl;
+  }
+
+  .glass-panel {
+    background: rgba(38, 38, 38, 0.6);
+    backdrop-filter: blur(20px);
   }
 
   .btn-primary {
-    @apply px-6 py-2.5 bg-accent-purple hover:bg-accent-purple/80 text-white font-medium rounded-lg 
-           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-           shadow-lg;
+    @apply px-6 py-2.5 bg-gradient-to-br from-primary to-primary-container text-on-primary-container font-bold uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-primary/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-ghost {
-    @apply px-4 py-2 text-text-secondary hover:text-white hover:bg-white/5 rounded-lg transition-colors;
+    @apply px-4 py-2 text-on-surface-variant hover:text-on-surface hover:bg-white/5 rounded-xl transition-colors;
   }
 
   .mono {

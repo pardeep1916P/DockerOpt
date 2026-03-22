@@ -1,42 +1,57 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { AnalysisResult, Issue } from '../../../types';
+import { ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
+import { AnalysisResult, Issue, Severity } from '../../../types';
 import { SeverityBadge } from '../../common/SeverityBadge';
 
 interface IssuesTabProps {
   data: AnalysisResult;
 }
 
+const severityBorder: Record<Severity, string> = {
+  critical: 'bg-error-dim',
+  high: 'bg-tertiary',
+  medium: 'bg-tertiary-dim',
+  low: 'bg-secondary',
+};
+
 const IssueCard: React.FC<{ issue: Issue; index: number }> = ({ issue, index }) => {
   const [open, setOpen] = useState(index === 0);
 
   return (
-    <div className="border border-gray-300/50 dark:border-gray-700/50 rounded-lg overflow-hidden transition-colors">
+    <div className="bg-surface-container-high rounded-2xl overflow-hidden transition-all relative group shadow-lg">
+      <div className={`absolute top-0 left-0 w-1.5 h-full ${severityBorder[issue.severity]}`}></div>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800/40 transition-colors text-left"
+        className="w-full flex justify-between items-center px-5 lg:px-6 py-4 hover:bg-white/[0.02] transition-colors text-left focus:outline-none"
       >
-        {open ? (
-          <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
-        )}
-        <SeverityBadge severity={issue.severity} />
-        <span className="text-sm text-gray-700 dark:text-gray-200 flex-1">{issue.title}</span>
+        <div className="flex items-center gap-4 flex-1">
+          {open ? (
+            <ChevronDown className="w-5 h-5 text-on-surface-variant shrink-0" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-on-surface-variant shrink-0" />
+          )}
+          <span className="text-sm lg:text-base font-bold tracking-tight text-on-surface flex-1">{issue.title}</span>
+          <SeverityBadge severity={issue.severity} />
+        </div>
       </button>
+      
       {open && (
-        <div className="px-4 pb-4 pt-1 ml-7 space-y-3 text-sm">
-          <div>
-            <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">Explanation</div>
-            <p className="text-gray-600 dark:text-gray-300">{issue.explanation}</p>
+        <div className="px-5 lg:px-6 pb-6 pt-2 ml-9 mr-2 space-y-5 animate-fade-in-up">
+          <div className="p-4 bg-surface-container-low rounded-xl border border-white/5">
+            <div className="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-2">Explanation</div>
+            <p className="text-on-surface text-sm leading-relaxed">{issue.explanation}</p>
           </div>
-          <div>
-            <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">Impact</div>
-            <p className="text-gray-500 dark:text-gray-400">{issue.impact}</p>
+          <div className="p-4 bg-surface-container-low rounded-xl border border-white/5">
+            <div className="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest mb-2">Impact</div>
+            <p className="text-on-surface text-sm leading-relaxed">{issue.impact}</p>
           </div>
-          <div>
-            <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">Suggested Fix</div>
-            <p className="text-emerald-400/80 font-mono text-xs">{issue.fix}</p>
+          <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+            <div className="text-primary text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[14px]">build</span> Suggested Fix
+            </div>
+            <div className="bg-background/80 p-3 rounded-lg border border-white/5 overflow-x-auto">
+              <code className="text-primary font-mono text-xs whitespace-pre">{issue.fix}</code>
+            </div>
           </div>
         </div>
       )}
@@ -51,18 +66,25 @@ export const IssuesTab: React.FC<IssuesTabProps> = ({ data }) => {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Issues</h2>
-        <span className="text-sm text-gray-500">{data.issues.length} detected</span>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between px-2">
+        <h2 className="text-xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+          <AlertTriangle className="text-tertiary w-5 h-5" />
+          Structural Issues
+        </h2>
+        <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-3 py-1 rounded-full">{data.issues.length} detected</span>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 text-sm">
-          No issues detected. Your Dockerfile looks good!
+        <div className="bg-surface-container-low rounded-[2rem] p-12 text-center flex flex-col items-center justify-center border border-white/5">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <span className="material-symbols-outlined text-primary text-3xl">check_circle</span>
+          </div>
+          <p className="text-on-surface font-bold text-lg tracking-tight">No issues detected.</p>
+          <p className="text-on-surface-variant text-sm mt-1">Your Dockerfile structurally looks good!</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {sorted.map((issue, i) => (
             <IssueCard key={i} issue={issue} index={i} />
           ))}

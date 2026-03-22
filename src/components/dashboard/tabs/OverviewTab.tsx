@@ -1,5 +1,5 @@
 import React from 'react';
-import { HardDrive, Layers, TrendingDown, Shield } from 'lucide-react';
+import { HardDrive, Layers, TrendingDown, Shield, AlertTriangle, Wand2 } from 'lucide-react';
 import { AnalysisResult } from '../../../types';
 import { MetricCard } from '../../common/MetricCard';
 import { ScoreRing } from '../../common/ScoreRing';
@@ -22,61 +22,66 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data }) => {
     : '0';
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Overview</h2>
-
-      <div className="flex items-start gap-8">
-        {/* Score Ring */}
-        <div className="flex flex-col items-center gap-2">
-          <ScoreRing score={data.optimizationScore} size={140} />
-          <span className="text-xs text-gray-500 uppercase tracking-wider">Optimization Score</span>
+    <div className="space-y-8">
+      {/* Hero Section: Score Dashboard */}
+      <section className="bg-surface-container-low rounded-[2rem] p-6 lg:p-10 flex flex-col md:flex-row items-center gap-8 lg:gap-16 border border-white/5 shadow-2xl">
+        <ScoreRing score={data.optimizationScore} size={200} />
+        
+        <div className="space-y-4 text-center md:text-left flex-1">
+          <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-on-surface">
+            Image Health: {data.optimizationScore >= 80 ? 'Excellent' : data.optimizationScore >= 50 ? 'Fair' : 'Needs Optimization'}
+          </h2>
+          <p className="text-on-surface-variant text-sm lg:text-base max-w-lg leading-relaxed">
+            Your image size is {reduction}% smaller than the original baseline. There are {data.changes.length} optimizations applied and {data.issues.length} structural issues identified.
+          </p>
+          
+          {/* Status Chips Row */}
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-4">
+            <div className="flex-shrink-0 flex items-center gap-2 lg:gap-3 bg-tertiary/10 border border-tertiary/20 px-4 py-2 rounded-full">
+              <AlertTriangle className="text-tertiary w-4 h-4" />
+              <span className="text-[10px] lg:text-xs font-bold text-tertiary uppercase tracking-wider">{data.issues.length} Issues Found</span>
+            </div>
+            {data.vulnerabilitiesBefore.length > 0 && (
+              <div className="flex-shrink-0 flex items-center gap-2 lg:gap-3 bg-error-dim/10 border border-error-dim/20 px-4 py-2 rounded-full">
+                <Shield className="text-error-dim w-4 h-4" />
+                <span className="text-[10px] lg:text-xs font-bold text-error-dim uppercase tracking-wider">{data.vulnerabilitiesBefore.length} Vulns</span>
+              </div>
+            )}
+            <div className="flex-shrink-0 flex items-center gap-2 lg:gap-3 bg-secondary/10 border border-secondary/20 px-4 py-2 rounded-full">
+              <Wand2 className="text-secondary w-4 h-4" />
+              <span className="text-[10px] lg:text-xs font-bold text-secondary uppercase tracking-wider">{data.changes.length} Optimizations</span>
+            </div>
+          </div>
         </div>
+      </section>
 
-        {/* Metrics Grid */}
-        <div className="flex-1 grid grid-cols-2 gap-4">
-          <MetricCard
-            label="Original Size"
-            value={formatBytes(data.originalSize)}
-            icon={<HardDrive className="w-4 h-4" />}
-          />
-          <MetricCard
-            label="Optimized Size"
-            value={formatBytes(data.optimizedSize)}
-            accent="text-emerald-400"
-            icon={<HardDrive className="w-4 h-4" />}
-          />
-          <MetricCard
-            label="Size Reduction"
-            value={`${reduction}%`}
-            subValue={`${formatBytes(data.originalSize - data.optimizedSize)} saved`}
-            accent="text-emerald-400"
-            icon={<TrendingDown className="w-4 h-4" />}
-          />
-          <MetricCard
-            label="Layers"
-            value={`${data.layerCountBefore} → ${data.layerCountAfter}`}
-            icon={<Layers className="w-4 h-4" />}
-          />
-        </div>
-      </div>
-
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Key Metrics Bento Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          label="Issues Found"
-          value={data.issues.length}
-          accent={data.issues.length > 0 ? 'text-yellow-400' : 'text-emerald-400'}
+          label="Original Size"
+          value={formatBytes(data.originalSize)}
+          icon={<HardDrive className="w-5 h-5" />}
+          subValue="Starting Baseline"
         />
         <MetricCard
-          label="Vulnerabilities"
-          value={data.vulnerabilitiesBefore.length}
-          accent={data.vulnerabilitiesBefore.length > 0 ? 'text-red-400' : 'text-emerald-400'}
-          icon={<Shield className="w-4 h-4" />}
+          label="Optimized Size"
+          value={formatBytes(data.optimizedSize)}
+          accent="primary"
+          icon={<HardDrive className="w-5 h-5" />}
+          subValue="After Optimization"
         />
         <MetricCard
-          label="Optimizations Applied"
-          value={data.changes.length}
-          accent="text-blue-400"
+          label="Reduction"
+          value={`${reduction}%`}
+          accent="secondary"
+          icon={<TrendingDown className="w-5 h-5" />}
+          subValue={`${formatBytes(data.originalSize - data.optimizedSize)} Saved`}
+        />
+        <MetricCard
+          label="Layers"
+          value={data.layerCountAfter}
+          subValue={`Reduced from ${data.layerCountBefore}`}
+          icon={<Layers className="w-5 h-5" />}
         />
       </div>
     </div>
