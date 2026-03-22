@@ -51,7 +51,7 @@ AI-powered Dockerfile analyzer and optimizer. Paste, upload, or photograph your 
 | Build | Vite |
 | Styling | Tailwind CSS (Dracula palette) |
 | Editor | Monaco Editor (`@monaco-editor/react`) |
-| AI | OpenAI SDK (GPT via KodeKloud API) |
+| AI | Parallel Multi-Model Pipeline (OpenAI SDK via KodeKloud) |
 | Charts | Chart.js + react-chartjs-2 |
 | Icons | lucide-react |
 | Notifications | react-hot-toast |
@@ -88,8 +88,8 @@ Create a `.env` file in the root:
 ```env
 VITE_OPENAI_API_KEY=your_api_key
 VITE_OPENAI_BASE_URL=https://api.ai.kodekloud.com/v1
-VITE_OPENAI_MODEL=gpt-5.2
-
+# Provide a fallback model, or a strict mapping for the Multi-Model Pipeline:
+VITE_OPENAI_MODELS=router=gpt-5.2;security=deepseek/v3.2;size=google/gemini-3-pro-preview;performance=anthropic/claude-sonnet-4.5;best_practices=x-ai/grok-4
 ```
 
 ---
@@ -97,12 +97,21 @@ VITE_OPENAI_MODEL=gpt-5.2
 
 ---
 
-## 🛠️ How it Works
+## 🏗️ Architecture
 
-1. **Input**: Paste, upload, or photograph your Dockerfile.
-2. **AI Analysis**: The app sends your Dockerfile to an OpenAI-powered API for multi-dimensional analysis (security, performance, size, best practices).
-3. **Dashboard**: Results are displayed in a tabbed dashboard with scores, issues, and suggestions.
-4. **Optimized Output**: Get a refactored Dockerfile and download or copy it instantly.
+![DockerOpt Multi-Model Architecture](./public/assets/architecture_dark.png)
+
+DockerOpt utilizes a **Parallel Multi-Model Expert System** to deliver high-fidelity diagnostics at minimal latency:
+
+1. **Input**: Downstream clients provide a Dockerfile (via Paste, OCR Image, or Upload).
+2. **Router AI**: An initial high-speed "Router Model" analyzes the original Dockerfile, determines the context, and creates a standardized blueprint.
+3. **Parallel Experts**: The standardized blueprint is concurrently dispatched to specialized Expert AI Models. Each expert scrutinizes a specific domain simultaneously:
+    - 🛡️ **Security Expert** (Vulnerabilities, hardcoded secrets, base image risks)
+    - 🗜️ **Size Expert** (Layer counts, multi-stage builds, cache-busting)
+    - ⚡ **Performance Expert** (Build speeds, cache efficiency, parallelism)
+    - 🎓 **Best Practices Expert** (Linting, official guidelines, maintainability)
+4. **Synthesis**: The Router Model aggregates the concurrent reports, resolves conflicts, and generates the finalized optimization score and fully refactored Dockerfile.
+5. **Dashboard**: The results are instantly rendered on the highly-polished "DockerOpt Kinetic" dashboard UI.
 
 ---
 
@@ -182,9 +191,10 @@ Contributions, issues, and feature requests are welcome!
 
 ## ⚠️ Privacy & API Note
 
-This app uses the [KodeKloud AI API](https://api.ai.kodekloud.com/v1) to analyze Dockerfiles. Your Dockerfile content is sent to a third-party service for analysis. Do not upload sensitive or proprietary information.
+This app uses the [KodeKloud AI API](https://api.ai.kodekloud.com/v1) to analyze Dockerfiles. Your Dockerfile content is sent to a third-party service for analysis. Do not upload sensitive or proprietary information. 
 
---- -->
+*Note: The current API endpoint is a test environment, so analysis responses may occasionally take extra time depending on server load.*
+
 
 ## License
 
