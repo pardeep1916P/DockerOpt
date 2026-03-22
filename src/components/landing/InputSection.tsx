@@ -123,14 +123,14 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, loading, 
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
-      className={`w-full flex-1 min-h-0 bg-gray-200 dark:bg-bg-card border rounded-lg shadow-2xl overflow-hidden flex flex-col transition-all duration-300 animate-fade-in-up ${
+      className={`w-full flex-1 min-h-0 bg-white dark:bg-bg-card border rounded-xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-2xl overflow-hidden flex flex-col transition-all duration-300 animate-fade-in-up ${
         isDragging
           ? 'border-accent-purple border-2 bg-accent-purple/5'
-          : 'border-gray-200 dark:border-border-subtle'
+          : 'border-gray-200/60 dark:border-border-subtle'
       }`}
     >
       {/* Tab Bar */}
-      <div className="flex items-center justify-between border-b border-gray-300 dark:border-border-subtle px-2 sm:px-4 pt-1 sm:pt-2 bg-gray-200 dark:bg-white/5">
+      <div className="flex items-center justify-between border-b border-gray-100 dark:border-border-subtle px-2 sm:px-4 pt-1 sm:pt-2 bg-gray-50 dark:bg-white/5">
         <div className="flex items-center">
           {modes.map((m) => (
             <button
@@ -224,7 +224,7 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, loading, 
         {/* Upload Mode */}
         {mode === 'upload' && (
           <div
-            className="h-full flex flex-col items-center justify-center cursor-pointer bg-gray-200 hover:bg-gray-300 dark:bg-transparent dark:hover:bg-white/5 transition-colors"
+            className="h-full flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-gray-50 dark:bg-transparent dark:hover:bg-white/5 transition-colors"
             onClick={() => document.getElementById('file-input')?.click()}
           >
             <input
@@ -252,14 +252,14 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, loading, 
 
         {/* Image Mode */}
         {mode === 'image' && (
-          <div className="h-full flex flex-col items-center justify-center px-4 sm:px-12 bg-gray-200 dark:bg-transparent">
+          <div className="h-full flex flex-col items-center justify-center px-4 sm:px-12 bg-white dark:bg-transparent">
             <Image className="w-10 h-10 text-gray-400 dark:text-text-secondary mb-4" />
             <input
               type="text"
               value={imageName}
               onChange={(e) => setImageName(e.target.value)}
               placeholder="e.g. node:18, python:3.11-slim, nginx:alpine"
-              className="w-full max-w-md bg-gray-100 dark:bg-bg-editor border border-gray-300 dark:border-border-subtle rounded-md px-4 py-3 text-sm font-mono text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-accent-purple/50 focus:ring-1 focus:ring-accent-purple/20"
+              className="w-full max-w-md bg-gray-50 dark:bg-bg-editor border border-gray-200 dark:border-border-subtle rounded-md px-4 py-3 text-sm font-mono text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-accent-purple/50 focus:ring-1 focus:ring-accent-purple/20 shadow-sm"
             />
             <p className="text-xs text-gray-400 dark:text-gray-600 mt-2">Enter a Docker image name to analyze</p>
           </div>
@@ -267,7 +267,7 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, loading, 
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="bg-gray-200 dark:bg-bg-card p-2 sm:p-4 border-t border-gray-300 dark:border-border-subtle flex justify-between items-center">
+      <div className="bg-gray-50 dark:bg-bg-card p-2 sm:p-4 border-t border-gray-100 dark:border-border-subtle flex justify-between items-center">
         {/* Line/char count */}
         <div className="flex items-center gap-3 text-[11px] text-gray-400 dark:text-gray-500 font-mono">
           {mode === 'paste' && code ? (
@@ -287,7 +287,7 @@ export const InputSection: React.FC<InputSectionProps> = ({ onAnalyze, loading, 
           <button
             onClick={handleSubmit}
             disabled={loading || !hasInput}
-            className={`bg-btn-bg hover:bg-btn-hover disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2 rounded-md font-medium text-sm transition-all shadow-lg border border-white/10 ${
+            className={`bg-gray-900 hover:bg-gray-800 dark:bg-btn-bg dark:hover:bg-btn-hover disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-2 rounded-md font-medium text-sm transition-all shadow-md dark:shadow-none dark:border dark:border-white/10 ${
               hasInput && !loading ? 'animate-pulse-subtle' : ''
             }`}
           >

@@ -9,7 +9,7 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onAnalyze, loading, latency }) => (
-  <div className="h-[100dvh] bg-gray-100 dark:bg-bg-main text-gray-900 dark:text-text-primary font-sans flex flex-col items-center overflow-hidden">
+  <div className="h-[100dvh] bg-gray-50 dark:bg-bg-main text-gray-900 dark:text-text-primary font-sans flex flex-col items-center overflow-hidden">
     <Header />
 
     {/* Main Content */}
