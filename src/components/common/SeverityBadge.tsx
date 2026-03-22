@@ -2,10 +2,10 @@ import React from 'react';
 import { Severity } from '../../types';
 
 const colorMap: Record<Severity, string> = {
-  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
-  high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  critical: 'bg-error-dim/20 text-error-dim',
+  high: 'bg-tertiary/20 text-tertiary',
+  medium: 'bg-tertiary-dim/20 text-tertiary-dim',
+  low: 'bg-secondary/20 text-secondary',
 };
 
 interface SeverityBadgeProps {
@@ -14,7 +14,7 @@ interface SeverityBadgeProps {
 
 export const SeverityBadge: React.FC<SeverityBadgeProps> = ({ severity }) => (
   <span
-    className={`px-2 py-0.5 text-xs font-mono font-semibold uppercase rounded border ${colorMap[severity]}`}
+    className={`px-2 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-md ${colorMap[severity]}`}
   >
     {severity}
   </span>
