@@ -22,7 +22,7 @@ export const Header: React.FC = () => {
     <header className="w-full max-w-6xl mx-auto px-3 sm:px-4 flex justify-between items-center py-3 sm:py-3">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <span className="inline-flex items-center shrink-0">
-          <img src="/src/svg/docker.svg" alt="Docker" className="w-[32px] h-[32px] sm:w-[38px] sm:h-[38px] object-contain" />
+          <img src="/docker.svg" alt="Docker" className="w-[32px] h-[32px] sm:w-[38px] sm:h-[38px] object-contain" />
         </span>
         <span className="text-gray-900 dark:text-white text-xl sm:text-2xl md:text-4xl font-['Inter'] font-black italic tracking-tighter truncate pr-1 sm:pr-2">DockerOpt</span>
       </div>

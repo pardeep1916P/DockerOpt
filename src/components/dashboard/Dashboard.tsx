@@ -39,7 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onBack }) => {
       {/* TopAppBar */}
       <header className="fixed top-0 w-full z-[60] flex items-center justify-between px-4 lg:px-6 h-16 bg-background/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-3">
-          <img src="/src/svg/docker.svg" alt="Docker" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+          <img src="/docker.svg" alt="Docker" className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
           <h1 className="font-['Inter'] tracking-tighter font-black italic text-xl sm:text-2xl text-white">DockerOpt</h1>
         </div>
         <div className="flex items-center gap-4">
