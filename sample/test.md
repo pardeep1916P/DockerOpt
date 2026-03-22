@@ -62,3 +62,34 @@ All models share a major hallucination: they fail to understand that `FROM scrat
 If your backend is attempting to show users **Realistic Size Savings** from optimization:
 - **Use Claude 4.5 Sonnet:** Extremely accurate on standard Node/Python environments. For instance, its Node estimates (1390 -> 272 MB) were nearly identical to the real output (1530 -> 296 MB).
 - **Use Grok-4:** Fantastic at grasping `scratch` / multi-stage drops, providing the lowest overall error rate on optimized outputs.
+
+---
+---
+---
+---
+---
+## 🧠 Multi-Model Expert System Accuracy (multi-model-run 2026-03-20 17:42:26)
+Router confidence threshold: `0.45`
+Ground truth: recorded sizes from the existing `sample/test.md`
+
+### 📊 Original Size Accuracy (from non-optimal Dockerfile input)
+
+| Model | Node.js (1530) | Python (1930) | Go (1410) | Java (919) | Rust (1520) | Avg Error |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Multi-Model Expert System | 1570 MB (3%) | 1190 MB (38%) | 1380 MB (2%) | 851 MB (7%) | 2716 MB (79%) | 25.8% |
+| anthropic/claude-sonnet-4.5 | 1757 MB (15%) | 1476 MB (24%) | 1196 MB (15%) | 808 MB (12%) | 2716 MB (79%) | 28.9% |
+
+### ⚡ Optimized Size Accuracy (optimized size ground truth)
+
+| Model | Node.js (296) | Python (392) | Go (7) | Java (120) | Rust (5) | Avg Error |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Multi-Model Expert System | 350 MB (18%) | 226 MB (42%) | 32 MB (362%) | 243 MB (102%) | 85 MB (1600%) | 425.0% |
+| anthropic/claude-sonnet-4.5 | 272 MB (8%) | 274 MB (30%) | 27 MB (286%) | 176 MB (47%) | 149 MB (2880%) | 650.1% |
+
+## 🏆 Multi-Model Expert System Verdict
+- Best original predictor (baseline): `anthropic/claude-sonnet-4.5` (28.9% avg error)
+- Multi-Model original avg error: 25.8%
+- Best optimized predictor (baseline): `anthropic/claude-sonnet-4.5` (650.1% avg error)
+- Multi-Model optimized avg error: 425.0%
+
+Multi-model config: `router=anthropic/claude-sonnet-4.5; security=anthropic/claude-sonnet-4.5; size=anthropic/claude-sonnet-4.5; performance=anthropic/claude-sonnet-4.5; best_practices=anthropic/claude-sonnet-4.5`
