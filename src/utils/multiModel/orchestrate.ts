@@ -146,16 +146,16 @@ export async function analyzeWithMultiModelExpertSystem(params: {
   const shouldRunAll = (router?.routerConfidence ?? 0) < routerConfidenceThreshold;
   const expertNames: ExpertName[] = shouldRunAll ? ['security', 'size', 'performance', 'best_practices'] : (router?.experts ?? []);
 
-  const expertAnalyses: ExpertAnalysisRaw[] = [];
-  for (const expertName of expertNames) {
+  const expertAnalysesPromises = expertNames.map((expertName) => {
     const model = models.expertModels[expertName] ?? models.routerModel;
-    const analysis = await runExpertAnalysis(client, {
+    return runExpertAnalysis(client, {
       model,
       expertName,
       dockerfile,
     });
-    expertAnalyses.push(analysis);
-  }
+  });
+
+  const expertAnalyses: ExpertAnalysisRaw[] = await Promise.all(expertAnalysesPromises);
 
   try {
     const merged = mergeExpertResults({
