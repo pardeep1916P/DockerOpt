@@ -97,14 +97,25 @@ function apiLoggerPlugin(env: Record<string, string>): Plugin {
                   .replace(/```\s*/g, '')
                   .trim();
                 const analysis = JSON.parse(cleaned);
-                summary = [
-                  `Score: ${analysis.optimizationScore ?? '?'}/100`,
-                  `Size: ${formatBytes(analysis.originalSize)} → ${formatBytes(analysis.optimizedSize)}`,
-                  `Layers: ${analysis.layerCountBefore} → ${analysis.layerCountAfter}`,
-                  `Issues: ${analysis.issues?.length ?? 0}`,
-                  `Vulns: ${analysis.vulnerabilities?.length ?? 0}`,
-                  `Changes: ${analysis.changes?.length ?? 0}`,
-                ].join('  │  ');
+
+                if (analysis.intent && analysis.experts) {
+                  // It's a Router response
+                  summary = [
+                    `Router Intent: ${analysis.intent}`,
+                    `Confidence: ${analysis.routerConfidence ?? '?'}`,
+                    `Experts: ${analysis.experts.join(', ')}`,
+                  ].join('  │  ');
+                } else {
+                  // It's an Expert/Full analysis response
+                  summary = [
+                    `Score: ${analysis.optimizationScore ?? '?'}/100`,
+                    `Size: ${formatBytes(analysis.originalSize)} → ${formatBytes(analysis.optimizedSize)}`,
+                    `Layers: ${analysis.layerCountBefore} → ${analysis.layerCountAfter}`,
+                    `Issues: ${analysis.issues?.length ?? 0}`,
+                    `Vulns: ${analysis.vulnerabilities?.length ?? 0}`,
+                    `Changes: ${analysis.changes?.length ?? 0}`,
+                  ].join('  │  ');
+                }
               } catch {
                 summary = content.slice(0, 200) + (content.length > 200 ? '…' : '');
               }
