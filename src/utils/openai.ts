@@ -73,7 +73,13 @@ function parseModelConfigFromEnv(): MultiModelConfig {
       best_practices: map.best_practices ?? map.bestPractices ?? routerModel,
     };
 
-    return { routerModel, expertModels };
+    return {
+      routerModel,
+      expertModels,
+      synthesizerModel: map.synthesizer ?? map.synth ?? routerModel,
+      expertTimeoutMs: Number(map.expertTimeout) || 15_000,
+      divergenceThreshold: Number(map.divergence) || 0.4,
+    };
   }
 
   // Format B: comma-separated list; first=router, then security/size/performance/best_practices
@@ -96,6 +102,7 @@ function parseModelConfigFromEnv(): MultiModelConfig {
         performance,
         best_practices,
       },
+      synthesizerModel: routerModel,
     };
   }
 
@@ -108,6 +115,7 @@ function parseModelConfigFromEnv(): MultiModelConfig {
       performance: fallback,
       best_practices: fallback,
     },
+    synthesizerModel: fallback,
   };
 }
 
