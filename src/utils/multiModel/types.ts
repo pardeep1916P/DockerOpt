@@ -41,5 +41,9 @@ export interface NormalizedExpert extends AnalysisResult {
 export interface MultiModelConfig {
   routerModel: string;
   expertModels: Record<ExpertName, string>;
+  synthesizerModel?: string;
+  expertTimeoutMs?: number;
+  globalTimeoutMs?: number;
+  divergenceThreshold?: number;
 }
 
