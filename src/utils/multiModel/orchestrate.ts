@@ -3,9 +3,11 @@ import type { AnalysisResult, LogEntry, Severity } from '../../types';
 import { SINGLE_MODEL_SYSTEM_PROMPT } from './prompts';
 import { extractJsonObject } from './json';
 import type { BaseAnalysisRaw, ExpertAnalysisRaw, ExpertName, MultiModelConfig, RouterResult } from './types';
-import { routeDockerfile } from './router';
+import { classifyDockerfile } from './classifier';
+import { analyzeDockerfileStatic, formatStaticAnalysisForPrompt } from './staticAnalysis';
 import { runExpertAnalysis } from './experts';
 import { mergeExpertResults, normalizeSizeBytes } from './merge';
+import { shouldRunSynthesizer, runSynthesizer } from './synthesizer';
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
@@ -127,47 +129,67 @@ export async function analyzeWithMultiModelExpertSystem(params: {
   client: OpenAI;
   dockerfile: string;
   models: MultiModelConfig;
-  routerConfidenceThreshold?: number;
 }): Promise<AnalysisResult> {
-  const { client, dockerfile, models, routerConfidenceThreshold = 0.45 } = params;
+  const { client, dockerfile, models } = params;
 
-  let router: RouterResult | null = null;
-  try {
-    router = await routeDockerfile(client, models.routerModel, dockerfile);
-  } catch {
-    router = {
-      intent: 'mixed',
-      experts: ['security', 'size', 'performance', 'best_practices'],
-      routerConfidence: 0,
-      reason: 'Router failed; using all experts.',
-    };
-  }
+  const expertTimeoutMs = models.expertTimeoutMs ?? 15_000;
+  const divergenceThreshold = models.divergenceThreshold ?? 0.4;
 
-  const shouldRunAll = (router?.routerConfidence ?? 0) < routerConfidenceThreshold;
-  const expertNames: ExpertName[] = shouldRunAll ? ['security', 'size', 'performance', 'best_practices'] : (router?.experts ?? []);
+  /* ── Step 1: Static analysis (zero latency) ── */
+  const staticAnalysis = analyzeDockerfileStatic(dockerfile);
+  const staticContext = formatStaticAnalysisForPrompt(staticAnalysis);
 
-  const expertAnalysesPromises = expertNames.map((expertName) => {
+  /* ── Step 2: Deterministic classification (zero latency) ── */
+  const router: RouterResult = classifyDockerfile(staticAnalysis, dockerfile);
+  const expertNames: ExpertName[] = router.experts;
+
+  /* ── Step 3: Run experts in parallel with timeouts ── */
+  const expertPromises = expertNames.map((expertName) => {
     const model = models.expertModels[expertName] ?? models.routerModel;
     return runExpertAnalysis(client, {
       model,
       expertName,
       dockerfile,
+      contextPrefix: staticContext,
+      timeoutMs: expertTimeoutMs,
     });
   });
 
-  const expertAnalyses: ExpertAnalysisRaw[] = await Promise.all(expertAnalysesPromises);
+  const settled = await Promise.allSettled(expertPromises);
+  const expertAnalyses: ExpertAnalysisRaw[] = settled
+    .filter((r): r is PromiseFulfilledResult<ExpertAnalysisRaw> => r.status === 'fulfilled')
+    .map((r) => r.value);
 
+  if (expertAnalyses.length === 0) {
+    const fallbackModel = models.routerModel;
+    return analyzeSingleModel({ client, dockerfile, model: fallbackModel });
+  }
+
+  /* ── Step 4: Optional synthesizer for divergent results ── */
+  let synthesizerOverride: { originalSize: number; optimizedSize: number; optimizationScore: number } | null = null;
+
+  if (shouldRunSynthesizer(expertAnalyses, divergenceThreshold)) {
+    const synthModel = models.synthesizerModel ?? models.routerModel;
+    const synthResult = await runSynthesizer(client, synthModel, {
+      dockerfile,
+      staticAnalysis,
+      expertResults: expertAnalyses,
+    });
+    if (synthResult) synthesizerOverride = synthResult;
+  }
+
+  /* ── Step 5: Merge expert results ── */
   try {
     const merged = mergeExpertResults({
       dockerfile,
-      router: router!,
+      router,
       expertAnalyses,
+      staticAnalysis,
+      synthesizerOverride,
     });
     return merged;
   } catch {
-    // Safety fallback: at least return a single model analysis.
-    const fallbackModel = models.routerModel ?? models.expertModels.size ?? models.routerModel;
+    const fallbackModel = models.routerModel;
     return analyzeSingleModel({ client, dockerfile, model: fallbackModel });
   }
 }
-
