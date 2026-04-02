@@ -86,6 +86,10 @@ export function buildExpertSystemPrompt(expertName: ExpertName): string {
 
 ${focusByExpert[expertName]}
 
+IMPORTANT: If a "STATIC ANALYSIS" block is provided, treat its layer counts and base image sizes as ground truth.
+For FROM scratch builds, the final image contains ONLY the copied binary (typically 5-30 MB).
+For distroless bases, add only ~20 MB to the binary.
+
 Analyze the provided Dockerfile and return a comprehensive JSON analysis.
 
 Return ONLY valid JSON with this exact structure (no markdown, no code fences):
