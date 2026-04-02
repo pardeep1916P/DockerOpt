@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use `classifier.ts` instead.
+ * This LLM-based router is kept as a fallback but is no longer
+ * used in the main pipeline. The static classifier in classifier.ts
+ * provides the same functionality with zero latency.
+ */
 import OpenAI from 'openai';
 import { ROUTER_SYSTEM_PROMPT } from './prompts';
 import { extractJsonObject } from './json';
