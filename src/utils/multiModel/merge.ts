@@ -1,5 +1,6 @@
 import type { AnalysisResult, Issue, LayerInfo, OptimizationChange, Severity, Vulnerability, LogEntry } from '../../types';
 import type { ExpertAnalysisRaw, ExpertName, RouterResult } from './types';
+import type { StaticDockerfileAnalysis } from './staticAnalysis';
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
@@ -93,8 +94,6 @@ function weightedAverageNumber(values: number[], weights: number[]): number {
 export function normalizeSizeBytes(raw: unknown): number {
   const n = Number(raw ?? 0);
   if (!Number.isFinite(n) || n < 0) return 0;
-  // Heuristic: any Docker image is at least ~5 MB ≈ 5 242 880 bytes.
-  // If the number is below 50 000, the model likely returned MB.
   if (n > 0 && n < 50_000) return Math.round(n * 1024 * 1024);
   return Math.round(n);
 }
@@ -103,8 +102,10 @@ export function mergeExpertResults(params: {
   dockerfile: string;
   router: RouterResult;
   expertAnalyses: ExpertAnalysisRaw[];
+  staticAnalysis?: StaticDockerfileAnalysis;
+  synthesizerOverride?: { originalSize: number; optimizedSize: number; optimizationScore: number } | null;
 }): AnalysisResult {
-  const { dockerfile, router, expertAnalyses } = params;
+  const { dockerfile, router, expertAnalyses, staticAnalysis, synthesizerOverride } = params;
 
   type NormalizedExpert = { expertName: ExpertName; expertConfidence: number; raw: ExpertAnalysisRaw };
   const experts = expertAnalyses.slice();
@@ -122,40 +123,65 @@ export function mergeExpertResults(params: {
   }, undefined);
 
   const weights = normalizedExperts.map((e) => e.expertConfidence);
-  const originalSize = Math.round(
-    weightedAverageNumber(
-      normalizedExperts.map((e) => normalizeSizeBytes(e.raw.originalSize)),
-      weights,
-    ),
-  );
-  const optimizedSize = Math.round(
-    weightedAverageNumber(
-      normalizedExperts.map((e) => normalizeSizeBytes(e.raw.optimizedSize)),
-      weights,
-    ),
-  );
 
-  const layerCountBefore = Math.round(
-    weightedAverageNumber(
-      normalizedExperts.map((e) => Number(e.raw.layerCountBefore ?? 0)),
-      weights,
-    ),
-  );
-  const layerCountAfter = Math.round(
-    weightedAverageNumber(
-      normalizedExperts.map((e) => Number(e.raw.layerCountAfter ?? 0)),
-      weights,
-    ),
-  );
+  /* ── Size metrics: use synthesizer if available, else weighted average ── */
+  let originalSize: number;
+  let optimizedSize: number;
+  let optimizationScore: number;
 
-  const optimizationScore = clamp(
-    weightedAverageNumber(
-      normalizedExperts.map((e) => Number(e.raw.optimizationScore ?? 0)),
-      weights,
-    ),
-    0,
-    100,
-  );
+  if (synthesizerOverride) {
+    originalSize = normalizeSizeBytes(synthesizerOverride.originalSize);
+    optimizedSize = normalizeSizeBytes(synthesizerOverride.optimizedSize);
+    optimizationScore = clamp(Number(synthesizerOverride.optimizationScore ?? 0), 0, 100);
+  } else {
+    originalSize = Math.round(
+      weightedAverageNumber(
+        normalizedExperts.map((e) => normalizeSizeBytes(e.raw.originalSize)),
+        weights,
+      ),
+    );
+    optimizedSize = Math.round(
+      weightedAverageNumber(
+        normalizedExperts.map((e) => normalizeSizeBytes(e.raw.optimizedSize)),
+        weights,
+      ),
+    );
+    optimizationScore = clamp(
+      weightedAverageNumber(
+        normalizedExperts.map((e) => Number(e.raw.optimizationScore ?? 0)),
+        weights,
+      ),
+      0,
+      100,
+    );
+  }
+
+  /* ── Layer counts: prefer static analysis (exact) over LLM estimates ── */
+  let layerCountBefore: number;
+  let layerCountAfter: number;
+
+  if (staticAnalysis) {
+    layerCountBefore = staticAnalysis.layerCount;
+    layerCountAfter = Math.round(
+      weightedAverageNumber(
+        normalizedExperts.map((e) => Number(e.raw.layerCountAfter ?? 0)),
+        weights,
+      ),
+    );
+  } else {
+    layerCountBefore = Math.round(
+      weightedAverageNumber(
+        normalizedExperts.map((e) => Number(e.raw.layerCountBefore ?? 0)),
+        weights,
+      ),
+    );
+    layerCountAfter = Math.round(
+      weightedAverageNumber(
+        normalizedExperts.map((e) => Number(e.raw.layerCountAfter ?? 0)),
+        weights,
+      ),
+    );
+  }
 
   // Issues: merge by title, prefer highest-confidence expert entry.
   const issuesByTitle = new Map<string, { issue: Issue; w: number }>();
@@ -168,13 +194,12 @@ export function mergeExpertResults(params: {
       if (!prev || e.expertConfidence > prev.w) {
         issuesByTitle.set(issue.title, { issue, w: e.expertConfidence });
       } else if (prev && SEVERITY_ORDER[issue.severity] < SEVERITY_ORDER[prev.issue.severity]) {
-        // If the current expert sees a more severe issue with same title, keep the more severe severity.
         issuesByTitle.set(issue.title, { issue: { ...prev.issue, severity: issue.severity }, w: prev.w });
       }
     }
   }
 
-  // Vulnerabilities: merge by CVE ID, prefer highest-confidence expert entry.
+  // Vulnerabilities: merge by CVE ID.
   const vulnsByCve = new Map<string, { vuln: Vulnerability; w: number }>();
   for (const e of normalizedExperts) {
     const list = Array.isArray(e.raw.vulnerabilities) ? e.raw.vulnerabilities : [];
@@ -189,9 +214,7 @@ export function mergeExpertResults(params: {
     }
   }
 
-  // For optimizedDockerfile/changes/layers, prefer winner expert for consistency.
   const winnerRaw = winner?.raw ?? {};
-
   const optimizedDockerfile = String(winnerRaw.optimizedDockerfile ?? dockerfile);
   const changes = Array.isArray(winnerRaw.changes) ? winnerRaw.changes.map(normalizeOptimizationChange) : [];
   const layersBefore = Array.isArray(winnerRaw.layersBefore) ? winnerRaw.layersBefore.map(normalizeLayer) : [];
@@ -201,7 +224,7 @@ export function mergeExpertResults(params: {
     {
       timestamp: new Date().toISOString(),
       level: 'info',
-      message: `Router: intent=${router.intent} confidence=${(router.routerConfidence * 100).toFixed(1)}%`,
+      message: `Classifier: intent=${router.intent} confidence=${(router.routerConfidence * 100).toFixed(1)}% (static)`,
     },
     {
       timestamp: new Date().toISOString(),
@@ -209,6 +232,22 @@ export function mergeExpertResults(params: {
       message: `Experts called: ${normalizedExperts.map((e) => e.expertName).join(', ')}`,
     },
   ];
+
+  if (staticAnalysis) {
+    logsRouter.push({
+      timestamp: new Date().toISOString(),
+      level: 'success',
+      message: `Static analysis: ${staticAnalysis.layerCount} layers, base=${staticAnalysis.finalStage.baseImage}, multi-stage=${staticAnalysis.hasMultiStage}`,
+    });
+  }
+
+  if (synthesizerOverride) {
+    logsRouter.push({
+      timestamp: new Date().toISOString(),
+      level: 'warning',
+      message: 'Synthesizer triggered: expert size estimates diverged significantly — reconciled.',
+    });
+  }
 
   const sortedByConfidence = [...normalizedExperts].sort((a, b) => b.expertConfidence - a.expertConfidence);
   const expertLogs = sortedByConfidence.flatMap((e) => (Array.isArray(e.raw.logs) ? e.raw.logs.map(normalizeLog) : []));
@@ -234,4 +273,3 @@ export function mergeExpertResults(params: {
     logs,
   };
 }
-
