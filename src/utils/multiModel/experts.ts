@@ -25,25 +25,35 @@ export async function runExpertAnalysis(
     model: string;
     expertName: ExpertName;
     dockerfile: string;
+    contextPrefix?: string;
+    timeoutMs?: number;
   },
 ): Promise<ExpertAnalysisRaw> {
-  const { model, expertName, dockerfile } = params;
+  const { model, expertName, dockerfile, contextPrefix, timeoutMs } = params;
   const systemPrompt = buildExpertSystemPrompt(expertName);
+  const userMessage = contextPrefix ? `${contextPrefix}\n\n${dockerfile}` : dockerfile;
 
   try {
-    const completion = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: dockerfile },
-      ],
-    });
+    const controller = new AbortController();
+    const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    const completion = await client.chat.completions.create(
+      {
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+      },
+      timeoutMs ? { signal: controller.signal } : undefined,
+    );
+
+    if (timer) clearTimeout(timer);
 
     const raw = completion.choices?.[0]?.message?.content ?? '{}';
     const parsed = extractJsonObject(raw);
     return normalizeExpertRaw(expertName, parsed);
   } catch (e) {
-    // If an expert call fails, return a minimal structure so merger can still work.
     return {
       expertName,
       expertConfidence: 0,
@@ -68,4 +78,3 @@ export async function runExpertAnalysis(
     };
   }
 }
-
