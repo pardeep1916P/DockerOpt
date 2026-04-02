@@ -23,3 +23,9 @@ export function extractJsonObject<T = unknown>(raw: string): T {
   }
 }
 
+/** Check whether a model supports `response_format: { type: "json_object" }`. */
+export function supportsJsonMode(model: string): boolean {
+  const lower = model.toLowerCase();
+  return ['gpt-5', 'gpt-4', 'deepseek', 'gemini'].some((m) => lower.includes(m));
+}
+
