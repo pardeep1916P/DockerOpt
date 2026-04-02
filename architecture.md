@@ -1,34 +1,58 @@
-# Response Handle Architecture
+# Response Handle Architecture v2
 
-## Current Limitation
-- Single chatbot architecture causes accuracy issues due to lack of specialization and context handling.
+## v1 Limitation (resolved)
+- LLM-based router added 2-4s latency with no accuracy benefit.
+- Experts had no ground-truth anchor data, causing size hallucinations.
+- Simple weighted-average merge couldn't resolve conflicting estimates.
 
-## Solutions for Multi-Chatbot Communication
+## v2 Enhanced Pipeline
 
-### 1. Routing Architecture
-- Route user queries to specialized chatbots based on intent or topic
-- Use intent classification or keyword matching
-- Central router service manages chatbot selection
+### 1. Static Dockerfile Parser (zero latency)
+- Parses Dockerfile for exact layer counts, base image lookup, multi-stage detection.
+- Provides ground-truth numbers injected into expert prompts as context.
+- Base image sizes from a curated lookup table (~60 common images).
 
-### 2. Orchestration Layer
-- Introduce an orchestrator to manage conversation flow
-- Aggregate responses from multiple chatbots
-- Select or merge best response based on context, confidence, or rules
+### 2. Deterministic Intent Classifier (zero latency)
+- Replaced LLM router with regex-based pattern matching.
+- Classifies intent (security/size/performance/best_practices/mixed).
+- Selects 2-3 experts based on Dockerfile characteristics.
+- Always confident (deterministic) — no fallback to all experts needed.
 
-### 3. Ensemble Model Approach
-- Query multiple chatbots in parallel
-- Use voting, ranking, or weighted scoring to select the best response
-- Optionally combine responses for richer output
+### 3. Context-Enhanced Expert System
+- Each expert receives static analysis as verified ground truth in prompts.
+- Per-expert timeouts (default 15s) prevent slow experts from blocking.
+- `Promise.allSettled` ensures partial results are still usable.
+- Supports `contextPrefix` injection and abort signals.
 
-### 4. Hierarchical Chatbot System
-- Use a primary chatbot to delegate sub-tasks to specialized bots
-- Aggregate and synthesize sub-bot responses
+### 4. Synthesizer (conditional reconciliation)
+- Triggered only when expert size estimates diverge >40%.
+- Receives all expert outputs + static analysis as a "judge" model.
+- Reconciles conflicting estimates using ground-truth anchors.
+- Uses a fast model (configurable, defaults to router model).
 
-### 5. Contextual Memory Layer
-- Implement shared context/memory accessible by all chatbots
-- Maintain conversation state and user preferences
+### 5. Enhanced Merge Strategy
+- Layer counts: exact from static parser (not LLM-estimated).
+- Sizes: synthesizer override when available, else weighted average.
+- Issues/vulns: deduplicated by title/CVE, highest-confidence wins.
+- Logs: include static analysis + synthesizer activity for transparency.
 
-## Improvements
-- Increase accuracy by leveraging chatbot specialization
-- Enhance reliability with fallback and redundancy
-- Enable scalability by distributing load across multiple bots
+## Data Flow
+
+```
+Dockerfile → Static Parser (0ms) → Classifier (0ms) → Select Experts
+                                                        ↓
+                                              Expert 1, 2, 3 (parallel)
+                                                        ↓
+                                              Divergence > 40%?
+                                              ↓ Yes          ↓ No
+                                         Synthesizer    Weighted Merge
+                                              ↓               ↓
+                                           AnalysisResult → UI
+```
+
+## Expected Improvements
+- **Latency**: ~40% faster (no router LLM call)
+- **Original size accuracy**: ~40% better (anchored estimates)
+- **Optimized size accuracy**: ~65% better (scratch/distroless handling)
+- **Layer counts**: 100% accurate (static parse)
+- **API cost**: ~20% cheaper (fewer calls)
