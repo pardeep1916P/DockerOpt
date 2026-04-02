@@ -1,6 +1,5 @@
-# DockerOpt
 
-**Live Demo: [https://docker-opt.vercel.app](https://docker-opt.vercel.app)**
+# DockerOpt
 
 AI-powered Dockerfile analyzer and optimizer. Paste, upload, or photograph your Dockerfile and get instant analysis with actionable optimization suggestions.
 
@@ -98,21 +97,29 @@ VITE_OPENAI_MODELS=router=gpt-5.2;security=deepseek/v3.2;size=google/gemini-3-pr
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architecture (v2 Enhanced Pipeline)
 
 ![DockerOpt Multi-Model Architecture](./public/assets/architecture_dark.png)
 
-DockerOpt utilizes a **Parallel Multi-Model Expert System** to deliver high-fidelity diagnostics at minimal latency:
+DockerOpt uses a **Static-Anchored Multi-Model Expert System** for high-accuracy, low-latency analysis:
 
-1. **Input**: Downstream clients provide a Dockerfile (via Paste, OCR Image, or Upload).
-2. **Router AI**: An initial high-speed "Router Model" analyzes the original Dockerfile, determines the context, and creates a standardized blueprint.
-3. **Parallel Experts**: The standardized blueprint is concurrently dispatched to specialized Expert AI Models. Each expert scrutinizes a specific domain simultaneously:
-    - 🛡️ **Security Expert** (Vulnerabilities, hardcoded secrets, base image risks)
-    - 🗜️ **Size Expert** (Layer counts, multi-stage builds, cache-busting)
-    - ⚡ **Performance Expert** (Build speeds, cache efficiency, parallelism)
-    - 🎓 **Best Practices Expert** (Linting, official guidelines, maintainability)
-4. **Synthesis**: The Router Model aggregates the concurrent reports, resolves conflicts, and generates the finalized optimization score and fully refactored Dockerfile.
-5. **Dashboard**: The results are instantly rendered on the highly-polished "DockerOpt Kinetic" dashboard UI.
+1. **Static Analysis** (0ms) — Parses the Dockerfile for exact layer counts, base image sizes (from a curated lookup table of ~60 common images), multi-stage detection, and cleanup patterns.
+2. **Deterministic Classifier** (0ms) — Regex-based intent classification replaces the LLM router, selecting 2-3 specialized experts with zero latency.
+3. **Context-Enhanced Experts** (parallel) — Each expert receives static analysis as verified ground truth in their prompts, dramatically reducing size hallucinations:
+    - 🛡️ **Security Expert** — Vulnerabilities, hardcoded secrets, base image risks
+    - 🗜️ **Size Expert** — Layer counts, multi-stage builds, realistic byte estimates
+    - ⚡ **Performance Expert** — Build speeds, cache efficiency, parallelism
+    - 🎓 **Best Practices Expert** — Linting, official guidelines, maintainability
+4. **Synthesizer** (conditional) — When expert estimates diverge >40%, a reconciliation model resolves conflicts using static analysis anchors. Especially effective for `FROM scratch` and distroless builds.
+5. **Enhanced Merge** — Layer counts from static parser (exact), sizes from synthesizer when available, issues/vulns deduplicated by title/CVE.
+
+**Key improvements over v1:**
+| Metric | v1 | v2 |
+|---|---|---|
+| Router latency | 2-4s (LLM) | 0ms (static) |
+| Layer count accuracy | Estimated | Exact |
+| Size anchoring | None | Base image lookup |
+| Conflict resolution | Weighted avg | Synthesizer judge |
 
 ---
 
